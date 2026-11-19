@@ -39,7 +39,7 @@ const EDGES = {
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /* open: Set of node keys whose label is visible; visited: node keys on the player's path; here: current node */
-export function mapSvg(open, visited, here) {
+export function mapSvg(open, visited, here, pal) {
   let h = '<svg class="mapsvg" viewBox="0 0 1000 640" role="img" aria-label="Class spirometry flowchart with covered answers">' +
     '<defs><marker id="ma" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,3.5 L0,7 Z" fill="#8f9bb0"/></marker>' +
     '<marker id="mal" markerWidth="12" markerHeight="12" refX="9" refY="4.5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L10,4.5 L0,9 Z" fill="#5fd3d6"/></marker></defs>';
@@ -65,7 +65,10 @@ export function mapSvg(open, visited, here) {
       lines.map((t, i) => `<text x="${n.x}" y="${y0 + i * 18}" text-anchor="middle" dominant-baseline="central" font-family="${isOpen ? 'IBM Plex Sans, sans-serif' : 'IBM Plex Mono, monospace'}" font-size="${isOpen ? 16 : 12}" font-weight="${isOpen ? 500 : 600}" fill="${isOpen ? '#e8edf5' : '#5fd3d6'}">${esc(t)}</text>`).join('') +
       (cur ? `<circle cx="${n.x}" cy="${n.y - (n.h || 34) / 2 - 12}" r="7" fill="#efc04e"><animate attributeName="r" values="5;9;5" dur="1.4s" repeatCount="indefinite"/></circle>` : '') + '</g>';
   });
-  return h + '</svg>';
+  h += '</svg>';
+  /* recolour the accent and panel for the current theme */
+  if (pal) h = h.split('#5fd3d6').join(pal.acc).split('#0b121b').join(pal.panel);
+  return h;
 }
 
 /* Cover boxes over the lecture slide (percent of lecture-algorithm.jpg). key = what the box hides. */

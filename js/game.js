@@ -18,6 +18,14 @@ const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { c
 const lerp = (a, b, k) => a + (b - a) * k;
 const ease = k => k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
 
+/* two looks: the default dark teal labyrinth, and pink (rose stone, pink torchlight and portals) */
+const PALS = {
+  dark: { bg: 0x05080d, hemi: 0x9fc4ff, ground: 0x1a2230, key: 0x5fd3d6, trim: 0x2aa6ab, idle: 0x2aa6ab, active: 0x2fc4c9, dim: 0x1a3f44, gate: 0xbff6ff, dust: 0x9fe8ea, gem: 0x5fd3d6, label: '#5fd3d6', holo: '#efc04e', hue: 212, sat: 18, carve: 'rgba(95,211,214,.22)', torch: 0xffb070, panel: '#0b121b' },
+  pink: { bg: 0x1b0912, hemi: 0xffc6de, ground: 0x2a1220, key: 0xff6fae, trim: 0xff4f9a, idle: 0xff4f9a, active: 0xff7ab8, dim: 0x4a1a30, gate: 0xffd9ec, dust: 0xffc6dd, gem: 0xff7ab8, label: '#ff8fc4', holo: '#ffd1e6', hue: 336, sat: 26, carve: 'rgba(255,143,196,.28)', torch: 0xffa3c8, panel: '#22101a' }
+};
+let THEME = LS.get('theme', 'dark') === 'pink' ? 'pink' : 'dark', PAL = PALS[THEME];
+document.documentElement.setAttribute('data-theme', THEME);
+
 /* ============================== 3D ============================== */
 const canvas = $('#scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -26,12 +34,12 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x05080d);
-scene.fog = new THREE.FogExp2(0x05080d, 0.034);
+scene.background = new THREE.Color(PAL.bg);
+scene.fog = new THREE.FogExp2(PAL.bg, 0.034);
 const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 90);
-scene.add(new THREE.HemisphereLight(0x9fc4ff, 0x1a2230, 1.25));
-const keyLight = new THREE.PointLight(0x5fd3d6, 24, 30, 1.5); keyLight.position.set(0, 4.4, -1.5); scene.add(keyLight);
-const torchL = new THREE.PointLight(0xffb070, 16, 16, 1.6), torchR = torchL.clone();
+const hemi = new THREE.HemisphereLight(PAL.hemi, PAL.ground, 1.25); scene.add(hemi);
+const keyLight = new THREE.PointLight(PAL.key, 24, 30, 1.5); keyLight.position.set(0, 4.4, -1.5); scene.add(keyLight);
+const torchL = new THREE.PointLight(PAL.torch, 16, 16, 1.6), torchR = torchL.clone();
 torchL.position.set(-6.3, 3.1, 1.5); torchR.position.set(6.3, 3.1, 1.5); scene.add(torchL, torchR);
 
 function canvasTex(w, h, draw, rep) {
@@ -43,33 +51,36 @@ function canvasTex(w, h, draw, rep) {
 }
 function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
 /* stone wall with faint spirometry curves carved into it */
-const wallTex = canvasTex(512, 512, (g, w, h) => {
+function makeWallTex(pal) { return canvasTex(512, 512, (g, w, h) => {
   const r = rng(11);
   g.fillStyle = '#0c121a'; g.fillRect(0, 0, w, h);
   for (let y = 0; y < h; y += 64) {
     const off = (y / 64) % 2 ? 64 : 0;
     for (let x = -128 + off; x < w; x += 128) {
-      const l = 19 + r() * 8; g.fillStyle = `hsl(212, 18%, ${l}%)`; g.fillRect(x + 3, y + 3, 122, 58);
+      const l = 19 + r() * 8; g.fillStyle = `hsl(${pal.hue}, ${pal.sat}%, ${l}%)`; g.fillRect(x + 3, y + 3, 122, 58);
       for (let i = 0; i < 60; i++) { g.fillStyle = `rgba(255,255,255,${r() * .05})`; g.fillRect(x + r() * 124, y + r() * 60, 2, 2); }
     }
   }
-  g.strokeStyle = 'rgba(95,211,214,.22)'; g.lineWidth = 3;
+  g.strokeStyle = pal.carve; g.lineWidth = 3;
   g.beginPath(); g.moveTo(60, 430); g.lineTo(84, 300); g.quadraticCurveTo(98, 280, 120, 330); g.lineTo(200, 430); g.quadraticCurveTo(130, 500, 60, 430); g.stroke();
   g.beginPath(); g.moveTo(290, 180); g.quadraticCurveTo(320, 70, 470, 66); g.stroke();
   g.beginPath(); g.moveTo(290, 180); g.lineTo(470, 180); g.stroke();
-});
-const floorTex = canvasTex(512, 512, (g, w, h) => {
+}); }
+function makeFloorTex(pal) { return canvasTex(512, 512, (g, w, h) => {
   const r = rng(5);
   g.fillStyle = '#080c12'; g.fillRect(0, 0, w, h);
   for (let y = 0; y < h; y += 128) for (let x = 0; x < w; x += 128) {
-    g.fillStyle = `hsl(210, 14%, ${12 + r() * 6}%)`; g.fillRect(x + 4, y + 4, 120, 120);
+    g.fillStyle = `hsl(${pal.hue}, ${pal.sat - 4}%, ${12 + r() * 6}%)`; g.fillRect(x + 4, y + 4, 120, 120);
   }
-  g.strokeStyle = 'rgba(95,211,214,.12)'; g.lineWidth = 2; g.strokeRect(4, 4, w - 8, h - 8);
-}, [3, 3]);
+  g.strokeStyle = pal.carve; g.lineWidth = 2; g.strokeRect(4, 4, w - 8, h - 8);
+}, [3, 3]); }
+const TEX = {};
+function texFor(theme) { if (!TEX[theme]) TEX[theme] = { wall: makeWallTex(PALS[theme]), floor: makeFloorTex(PALS[theme]) }; return TEX[theme]; }
+let wallTex = texFor(THEME).wall, floorTex = texFor(THEME).floor;
 const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: .92, metalness: .04, emissive: 0xffffff, emissiveMap: wallTex, emissiveIntensity: .22 });
 const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: .8, metalness: .1, emissive: 0xffffff, emissiveMap: floorTex, emissiveIntensity: .16 });
 const ceilMat = new THREE.MeshStandardMaterial({ color: 0x06090e, roughness: 1 });
-const trimMat = new THREE.MeshStandardMaterial({ color: 0x0d1b22, emissive: 0x2aa6ab, emissiveIntensity: .9, roughness: .4 });
+const trimMat = new THREE.MeshStandardMaterial({ color: 0x0d1b22, emissive: PAL.trim, emissiveIntensity: .9, roughness: .4 });
 const corrMat = new THREE.MeshBasicMaterial({ color: 0x04070b, side: THREE.BackSide });
 
 function portalMaterial(hex) {
@@ -90,7 +101,7 @@ function labelTexture(lines, opts) {
   return canvasTex(w, h, (g) => {
     g.fillStyle = opts.bg || 'rgba(5,10,16,.88)';
     const r = 26; g.beginPath(); g.moveTo(r, 4); g.arcTo(w - 4, 4, w - 4, h - 4, r); g.arcTo(w - 4, h - 4, 4, h - 4, r); g.arcTo(4, h - 4, 4, 4, r); g.arcTo(4, 4, w - 4, 4, r); g.closePath(); g.fill();
-    g.lineWidth = 6; g.strokeStyle = opts.stroke || '#5fd3d6'; g.stroke();
+    g.lineWidth = 6; g.strokeStyle = opts.stroke || PAL.label; g.stroke();
     g.textAlign = 'center'; g.textBaseline = 'middle';
     lines.forEach((ln, i) => {
       g.fillStyle = ln.c || '#ffffff';
@@ -108,13 +119,15 @@ const room = new THREE.Group(); scene.add(room);
 let doors = [], holo = null, holoLabel = null, exitGate = null, dust = null;
 
 function box(w, h, d, mat, x, y, z) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); room.add(m); return m; }
+let lastSpec = null;
 function disposeRoom() {
-  room.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.map && o.material.map !== wallTex && o.material.map !== floorTex) o.material.map.dispose(); });
+  const keep = new Set(Object.values(TEX).flatMap(t => [t.wall, t.floor]));
+  room.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.map && !keep.has(o.material.map)) o.material.map.dispose(); });
   room.clear(); doors = []; holo = null; holoLabel = null; exitGate = null;
 }
 function buildRoom(spec) {
   /* spec: { doors: [labels], holo: text, exit: {title, sub} } */
-  disposeRoom();
+  disposeRoom(); lastSpec = spec;
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D + 6), floorMat); floor.rotation.x = -Math.PI / 2; floor.position.z = 3; room.add(floor);
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D + 6), ceilMat); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, H, 3); room.add(ceil);
   box(.4, H, D + 6, wallMat, -W / 2 - .2, H / 2, 3); box(.4, H, D + 6, wallMat, W / 2 + .2, H / 2, 3);
@@ -135,10 +148,10 @@ function buildRoom(spec) {
     const pillarR = pillarL.clone(); pillarR.position.x = dw / 2 - .11;
     const lintel = new THREE.Mesh(new THREE.BoxGeometry(dw + .1, .22, .7), trimMat); lintel.position.set(0, DOOR_H, .1);
     g.add(pillarL, pillarR, lintel);
-    const mat = portalMaterial(0x2aa6ab);
+    const mat = portalMaterial(PAL.idle);
     const portal = new THREE.Mesh(new THREE.PlaneGeometry(dw - .44, DOOR_H - .12), mat); portal.position.set(0, DOOR_H / 2, .05); g.add(portal);
     const corr = new THREE.Mesh(new THREE.BoxGeometry(dw, DOOR_H, 9), corrMat); corr.position.set(0, DOOR_H / 2, -4.6); g.add(corr);
-    const lab = new THREE.Mesh(new THREE.PlaneGeometry(n > 2 ? 2.6 : 3.1, n > 2 ? .81 : .97), new THREE.MeshBasicMaterial({ map: labelTexture([{ t: LET[i], s: 46, c: '#5fd3d6' }, { t: label, s: 58 }], { h: 200 }), transparent: true }));
+    const lab = new THREE.Mesh(new THREE.PlaneGeometry(n > 2 ? 2.6 : 3.1, n > 2 ? .81 : .97), new THREE.MeshBasicMaterial({ map: labelTexture([{ t: LET[i], s: 46, c: PAL.label }, { t: label, s: 58 }], { h: 200 }), transparent: true }));
     lab.position.set(0, DOOR_H + .78, .3); g.add(lab);
     const bars = new THREE.Group(); bars.visible = false; g.add(bars);
     const barMat = new THREE.MeshBasicMaterial({ color: 0xff5c5c });
@@ -151,20 +164,20 @@ function buildRoom(spec) {
   const ped = new THREE.Mesh(new THREE.CylinderGeometry(.55, .75, 1, 24), new THREE.MeshStandardMaterial({ color: 0x18222e, roughness: .6, metalness: .3 })); ped.position.y = .5; holo.add(ped);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(.62, .03, 8, 48), trimMat); ring.rotation.x = Math.PI / 2; ring.position.y = 1.01; holo.add(ring);
   const gem = new THREE.Group(); gem.position.y = 1.85; holo.add(gem);
-  gem.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.OctahedronGeometry(.62)), new THREE.LineBasicMaterial({ color: 0x5fd3d6 })));
-  gem.add(new THREE.Mesh(new THREE.OctahedronGeometry(.4), new THREE.MeshBasicMaterial({ color: 0x5fd3d6, transparent: true, opacity: .3 })));
+  gem.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.OctahedronGeometry(.62)), new THREE.LineBasicMaterial({ color: PAL.gem })));
+  gem.add(new THREE.Mesh(new THREE.OctahedronGeometry(.4), new THREE.MeshBasicMaterial({ color: PAL.gem, transparent: true, opacity: .3 })));
   holo.userData.gem = gem;
   setHolo(spec.holo || '?');
 }
 function setHolo(text) {
   if (!holo) return;
   if (holoLabel) { holo.remove(holoLabel); holoLabel.material.map.dispose(); holoLabel.geometry.dispose(); }
-  holoLabel = new THREE.Mesh(new THREE.PlaneGeometry(2.0, .62), new THREE.MeshBasicMaterial({ map: labelTexture([{ t: text, s: 60 }], { h: 190, stroke: '#efc04e' }), transparent: true }));
+  holoLabel = new THREE.Mesh(new THREE.PlaneGeometry(2.0, .62), new THREE.MeshBasicMaterial({ map: labelTexture([{ t: text, s: 60 }], { h: 190, stroke: PAL.holo }), transparent: true }));
   holoLabel.position.set(0, 2.82, 0); holo.add(holoLabel);
 }
 function buildExit(ex) {
   box(W, H, .5, wallMat, 0, H / 2, NZ - 6);
-  const gate = new THREE.Mesh(new THREE.PlaneGeometry(6, 4.2), portalMaterial(0xbff6ff)); gate.position.set(0, 2.1, NZ - 5.7); room.add(gate);
+  const gate = new THREE.Mesh(new THREE.PlaneGeometry(6, 4.2), portalMaterial(PAL.gate)); gate.position.set(0, 2.1, NZ - 5.7); room.add(gate);
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 1.5), new THREE.MeshBasicMaterial({ map: labelTexture([{ t: 'EXIT', s: 40, c: '#efc04e' }, { t: ex.title, s: 66 }], { w: 900, h: 210, stroke: '#efc04e' }), transparent: true }));
   sign.position.set(0, 4.45, NZ - 5.6); room.add(sign);
   exitGate = gate;
@@ -174,7 +187,7 @@ function buildExit(ex) {
   const n = 260, pos = new Float32Array(n * 3), r = rng(3);
   for (let i = 0; i < n; i++) { pos[i * 3] = (r() - .5) * W; pos[i * 3 + 1] = r() * H; pos[i * 3 + 2] = (r() - .5) * (D + 4); }
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  dust = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0x9fe8ea, size: .045, transparent: true, opacity: .55, depthWrite: false }));
+  dust = new THREE.Points(geo, new THREE.PointsMaterial({ color: PAL.dust, size: .045, transparent: true, opacity: .55, depthWrite: false }));
   scene.add(dust);
 })();
 
@@ -336,7 +349,7 @@ function askQ2() {
   if (!G || G.phase !== 'q1done') return;
   G.phase = 'q2';
   const j = J[G.node];
-  doors.forEach(d => doorColor(d, 0x2fc4c9, 1));
+  doors.forEach(d => doorColor(d, PAL.active, 1));
   panel.innerHTML = `<div class="step">Question 2 of 2 &#183; which corridor?</div><p class="q">${j.q2}</p>` +
     `<ul class="opts">${j.doors.map((d, i) => `<li><button type="button" class="opt door" data-i="${i}"><span class="k">${LET[i]}</span><span>${d.t}</span></button></li>`).join('')}</ul>` +
     `<p class="hint">Tap a door in the room or a button here. The value is in <b>Case</b>${G.node === 'corr' || G.node === 'bd' ? '; the formula is in <b>Ref</b>' : ''}.</p>`;
@@ -355,7 +368,7 @@ async function chooseDoor(i) {
   const fb = document.createElement('div'); fb.className = 'fb ' + (ok ? 'ok' : 'no');
   fb.innerHTML = `<span class="h">${ok ? 'Correct corridor' : 'Wrong door. The way is'}: ${j.doors[c].t}</span><span class="val">${j.val(G.st.v)}</span>`;
   if (!ok) {
-    doorColor(doors[i], 0xff3b3b, 1); doors[i].bars.visible = true;
+    G.badDoor = i; doorColor(doors[i], 0xff3b3b, 1); doors[i].bars.visible = true;
     const dead = wrong(); if (dead) return;
     doorColor(doors[c], 0x4fc98b, 1);
     G.phase = 'q2fix'; G.correctDoor = c;
@@ -367,7 +380,7 @@ async function chooseDoor(i) {
   }
   right(); hud();
   panel.appendChild(fb);
-  doors.forEach((d, k) => doorColor(d, k === c ? 0x4fc98b : 0x1a3f44, k === c ? 1 : .35));
+  doors.forEach((d, k) => doorColor(d, k === c ? 0x4fc98b : PAL.dim, k === c ? 1 : .35));
   await new Promise(r => setTimeout(r, REDUCE ? 200 : 900));
   walkTo(c);
 }
@@ -481,7 +494,7 @@ function drawItem() {
     $('#ovTitle').textContent = 'Map';
     tabs(['Summary flowchart', 'Lecture flowchart']);
     if (ovTab === 0) {
-      body.innerHTML = mapSvg(G.open, G.visited, G.phase === 'end' ? null : G.node) +
+      body.innerHTML = mapSvg(G.open, G.visited, G.phase === 'end' ? null : G.node, { acc: PAL.label, panel: PAL.panel }) +
         `<p class="mapnote">Yellow dot = you are here. Covered boxes open as you reach them; tap one to peek (resets your streak). Thresholds use &#8805;: a value exactly on the line goes the &#8805; way.</p>`;
       $$('.mnode.covered', body).forEach(g => peekArmSvg(g));
     } else {
@@ -545,6 +558,35 @@ async function startStage(i) {
   await tween(1000, k => { camBase.z = lerp(9.5, view.z, k); });
   toast('Open <b>Case</b> to read the patient&#8217;s report', true);
 }
+function applyTheme(t) {
+  THEME = t === 'pink' ? 'pink' : 'dark'; PAL = PALS[THEME];
+  document.documentElement.setAttribute('data-theme', THEME); LS.set('theme', THEME);
+  scene.background.set(PAL.bg); scene.fog.color.set(PAL.bg);
+  hemi.color.set(PAL.hemi); hemi.groundColor.set(PAL.ground); keyLight.color.set(PAL.key);
+  torchL.color.set(PAL.torch); torchR.color.set(PAL.torch);
+  const tx = texFor(THEME); wallTex = tx.wall; floorTex = tx.floor;
+  wallMat.map = wallMat.emissiveMap = wallTex; floorMat.map = floorMat.emissiveMap = floorTex;
+  wallMat.needsUpdate = true; floorMat.needsUpdate = true;
+  trimMat.emissive.set(PAL.trim);
+  if (dust) dust.material.color.set(PAL.dust);
+  /* rebuild the room in the new colours and put the doors back the way they were */
+  if (lastSpec) {
+    buildRoom(lastSpec);
+    if (G && J[G.node] && !lastSpec.exit) {
+      if (G.open.has(G.node)) setHolo(J[G.node].name);
+      if (G.phase === 'q2') doors.forEach(d => doorColor(d, PAL.active, 1));
+      if (G.phase === 'q2fix') { doorColor(doors[G.badDoor], 0xff3b3b, 1); doors[G.badDoor].bars.visible = true; doorColor(doors[G.correctDoor], 0x4fc98b, 1); }
+    }
+  }
+  if (ovKind) drawItem();
+  themeLabel();
+}
+function themeLabel() {
+  $('#btnTheme2 span').textContent = THEME;
+  const b = $('#btnTheme'); b.setAttribute('data-t', THEME); b.title = 'Theme: ' + THEME + ' (T)';
+}
+$('#btnTheme').addEventListener('click', () => applyTheme(THEME === 'pink' ? 'dark' : 'pink'));
+$('#btnTheme2').addEventListener('click', () => applyTheme(THEME === 'pink' ? 'dark' : 'pink'));
 function musicLabel() { const m = Sound.isMuted(); $('#btnMusic2 span').textContent = m ? 'off' : 'on'; $('#btnMusic').style.opacity = m ? .45 : 1; }
 function toggleMusic() { Sound.init(); Sound.setMuted(!Sound.isMuted()); if (Sound.isMuted()) Sound.stopMusic(); musicLabel(); }
 $('#btnMusic').addEventListener('click', toggleMusic);
@@ -560,6 +602,7 @@ addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key;
   if (k === 'Escape') { if (!$('#overlay').hidden) { closeItem(); e.preventDefault(); } return; }
+  if (k === 't' || k === 'T') { applyTheme(THEME === 'pink' ? 'dark' : 'pink'); return; }
   if (!$('#boost').hidden) { if (k === '1') $$('.boostbtn')[0].click(); if (k === '2') $$('.boostbtn')[1].click(); return; }
   if (!G || G.phase === 'end' || !$('#overlay').hidden) return;
   if (k === 'c' || k === 'C') return openItem('case');
@@ -583,7 +626,8 @@ layout();
 buildRoom({ doors: ['< 75%', '≥ 75%'], holo: 'FEV₁/FVC' });
 camBase.z = 8;
 musicLabel();
+themeLabel();
 requestAnimationFrame(frame);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (!G) buildRoom({ doors: ['< 75%', '≥ 75%'], holo: 'FEV₁/FVC' }); });
 /* test hook: lets an automated check play the game without guessing coordinates */
-window.__pft = { get G() { return G; }, startStage, answerQ1, askQ2, chooseDoor, openItem, closeItem, openStages };
+window.__pft = { get G() { return G; }, startStage, answerQ1, askQ2, chooseDoor, openItem, closeItem, openStages, applyTheme };

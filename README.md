@@ -18,8 +18,9 @@ A 3D maze for learning to read spirometry with the class flowchart. Every juncti
   - **Ref**: formulas (FEV₁/FVC, corrected %FVC, change after bronchodilator) and the severity table, with the table covered.
 - Restrictive stages end with one more gate: grade the severity by FVC % predicted.
 - Music and sound effects are synthesised in the browser (Web Audio). They start after your first tap and can be switched off.
+- Two looks: the default dark teal labyrinth and a **pink** one (rose stone, pink torchlight and portals). Switch with ♥ in the top bar, the Theme button on the title screen, or `T`.
 
-Works on phones (tap a door or a button; the questions sit in a bottom sheet) and computers (`1`–`4` answer, `←` `→` doors, `Enter` continue, `C` `M` `R` items, `Esc` close).
+Works on phones (tap a door or a button; the questions sit in a bottom sheet) and computers (`1`–`4` answer, `←` `→` doors, `Enter` continue, `C` `M` `R` items, `T` dark or pink, `Esc` close).
 
 ## Stages
 
