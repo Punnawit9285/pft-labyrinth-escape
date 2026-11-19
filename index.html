@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PFT Labyrinth Escape</title>
+<meta name="description" content="A 3D maze for learning spirometry interpretation: at every junction pick the value to read, then the corridor it sends you down. Case 1 IPF, asthma, COPD and lecture examples. RS I, Chulalongkorn University.">
+<meta name="theme-color" content="#05080d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 38 38'%3E%3Crect width='38' height='38' rx='8' fill='%2305080d'/%3E%3Cpath d='M19 6 33 19 19 32 5 19Z' fill='none' stroke='%235fd3d6' stroke-width='2.5'/%3E%3Cpath d='M19 13v12M13 19h12' stroke='%23fff' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="scene" aria-hidden="true"></canvas>
+<div id="fade"></div>
+
+<header class="hud" id="hud" hidden>
+  <div class="hud-l">
+    <div class="hearts" id="hearts" aria-label="Hearts"></div>
+    <div class="shield" id="shield" hidden title="Immune is active: the next wrong answer costs no heart">&#128737;&#65039; <span></span></div>
+    <div class="streak" id="streak" title="Three correct in a row earns a booster"><i></i><i></i><i></i></div>
+  </div>
+  <div class="hud-c"><b id="stageName"></b><small id="stepName"></small></div>
+  <div class="hud-r">
+    <button type="button" class="item" id="btnCase" aria-label="Case"><span class="ic">&#128203;</span><span class="lb">Case</span></button>
+    <button type="button" class="item" id="btnMap" aria-label="Map"><span class="ic">&#128506;&#65039;</span><span class="lb">Map</span></button>
+    <button type="button" class="item" id="btnRef" aria-label="Reference"><span class="ic">&#128214;</span><span class="lb">Ref</span></button>
+    <button type="button" class="item boost" id="btnImmune" aria-label="Use Immune booster" hidden><span class="ic">&#128737;&#65039;</span><span class="lb">&#215;<span class="n">0</span></span></button>
+    <button type="button" class="item boost" id="btnHealer" aria-label="Use Healer booster" hidden><span class="ic">&#10084;&#65039;&#8205;&#129657;</span><span class="lb">&#215;<span class="n">0</span></span></button>
+    <button type="button" class="icon" id="btnMusic" aria-label="Music on or off">&#9835;</button>
+    <button type="button" class="icon" id="btnMenu" aria-label="Back to stages">&#9776;</button>
+  </div>
+</header>
+
+<section class="panel" id="panel" hidden aria-live="polite"></section>
+<div class="toast" id="toast" role="status"></div>
+
+<!-- title -->
+<section class="screen" id="scrTitle">
+  <div class="tcard">
+    <div class="kick">RS I &#183; Spirometry</div>
+    <h1>PFT Labyrinth <span>Escape</span></h1>
+    <p class="lede">หาทางออกจากเขาวงกต spirometry: ทุกทางแยกตอบ 2 ข้อ &#8212; ดูค่าไหน แล้วไปทางไหน</p>
+    <div class="row">
+      <button type="button" class="btn primary big" id="btnPlay">Play</button>
+      <button type="button" class="btn" id="btnHow">How to play</button>
+      <button type="button" class="btn" id="btnMusic2">&#9835; Music: <span>on</span></button>
+    </div>
+    <p class="fine">Case 1 (IPF) first, then asthma, COPD, lecture and lab examples. Works on phones and computers.</p>
+  </div>
+</section>
+
+<!-- how to play -->
+<section class="screen" id="scrHow" hidden>
+  <div class="tcard wide">
+    <h2>How to play</h2>
+    <ol class="how">
+      <li><b>3 hearts.</b> Each wrong answer costs one. Lose all three and the stage restarts.</li>
+      <li><b>Every junction asks two things.</b> First: <i>which value do we look at here?</i> (for example FEV&#8321;/FVC). Then: <i>which corridor?</i> Pick the door whose rule matches the patient, for example &#8805; 75% or &lt; 75%.</li>
+      <li><b>Items, any time.</b> <b>Case</b> shows the patient&#8217;s report (open it to read the numbers). <b>Map</b> is the class flowchart with the answers covered. <b>Ref</b> has the formulas. Peeking under a cover resets your streak.</li>
+      <li><b>Three right in a row</b> earns a booster: <b>Immune</b> (the next mistake is free) or <b>Healer</b> (+1 heart).</li>
+      <li>Reach an exit to escape. The exit names the spirometry pattern, then the case is explained.</li>
+    </ol>
+    <p class="fine">Keys: <kbd>1</kbd>&#8211;<kbd>4</kbd> answer &#183; <kbd>&#8592;</kbd><kbd>&#8594;</kbd> pick a door &#183; <kbd>Enter</kbd> continue &#183; <kbd>C</kbd> case &#183; <kbd>M</kbd> map &#183; <kbd>R</kbd> reference &#183; <kbd>Esc</kbd> close</p>
+    <div class="row"><button type="button" class="btn primary" id="btnHowOk">Got it</button></div>
+  </div>
+</section>
+
+<!-- stage select -->
+<section class="screen" id="scrStages" hidden>
+  <div class="tcard wide">
+    <div class="tophead"><h2>Choose a labyrinth</h2><button type="button" class="btn" id="btnStagesBack">Back</button></div>
+    <div class="stagegrid" id="stageGrid"></div>
+    <p class="fine">Sources: RS I student presentation cases 2569; Pulmonary function test lecture (Sanguanwong, 2026); PFT lab handout; AC79 recall file. Flowchart rules from the class summary flowchart.</p>
+  </div>
+</section>
+
+<!-- end of stage -->
+<section class="screen" id="scrEnd" hidden><div class="tcard wide" id="endCard"></div></section>
+
+<!-- item overlay -->
+<section class="overlay" id="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="ovTitle">
+  <div class="ovcard">
+    <div class="ovhead"><b id="ovTitle"></b><div class="tabs" id="ovTabs"></div><button type="button" class="btn close" id="ovClose" aria-label="Close">&#10005;</button></div>
+    <div class="ovbody" id="ovBody"></div>
+  </div>
+</section>
+
+<!-- booster choice -->
+<section class="overlay" id="boost" hidden role="dialog" aria-modal="true" aria-labelledby="boostTitle">
+  <div class="ovcard small">
+    <h2 id="boostTitle">3 in a row! Choose a booster</h2>
+    <div class="boostrow">
+      <button type="button" class="boostbtn" data-b="immune"><span class="bi">&#128737;&#65039;</span><b>Immune</b><small>The next wrong answer costs no heart</small></button>
+      <button type="button" class="boostbtn" data-b="healer"><span class="bi">&#10084;&#65039;&#8205;&#129657;</span><b>Healer</b><small>+1 heart (up to 3)</small></button>
+    </div>
+    <p class="fine">Boosters wait in the bar at the top until you tap them.</p>
+  </div>
+</section>
+
+<noscript><p class="noscript">This game needs JavaScript and WebGL.</p></noscript>
+<script src="js/stages.js"></script>
+<script src="js/logic.js"></script>
+<script type="module" src="js/game.js"></script>
+</body>
+</html>
