@@ -11,11 +11,12 @@ A 3D maze for learning to read spirometry with the class flowchart. Every juncti
 ## Rules
 
 - Start with **3 hearts**. Each wrong answer costs one. At zero the stage restarts.
-- **Three correct answers in a row** earn a booster: **Immune** (the next mistake costs nothing) or **Healer** (+1 heart, up to 3). Boosters wait in the top bar until you tap them.
-- **Items**, open any time:
+- **Three correct answers in a row** earn a booster: **Immune** (the next mistake costs nothing) or **Healer** (+1 heart, up to 3). Boosters wait in their hotbar slots (with a count) until you tap them.
+- **Items**, open any time from the **hotbar** at the bottom of the screen (block-game style: Case, Map, Ref, then the two booster slots):
   - **Case**: the patient's report (history and PFT printout). The diagnosis is covered until you escape.
   - **Map**: the class summary flowchart and the lecture flowchart, with the value each diamond checks and every exit covered. A cover opens when you reach that point. Peeking under a cover early resets your streak.
   - **Ref**: formulas (FEV₁/FVC, corrected %FVC, change after bronchodilator) and the severity table, with the table covered.
+- **☰ Stages** in the top bar goes back to stage selection.
 - Restrictive stages end with one more gate: grade the severity by FVC % predicted.
 - Music and sound effects are synthesised in the browser (Web Audio). They start after your first tap and can be switched off.
 - Two looks: the default dark teal labyrinth and a **pink** one (rose stone, pink torchlight and portals). Switch with ♥ in the top bar, the Theme button on the title screen, or `T`.

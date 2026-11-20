@@ -190,3 +190,35 @@ h2 { font: 600 1.5rem/1.2 var(--f-display); margin: 0; }
 }
 :root[data-theme="pink"] .tcard { box-shadow: 0 0 60px rgba(255, 122, 184, .14); }
 #btnTheme[data-t="pink"] { border-color: var(--teal); color: var(--teal); }
+
+/* ---------- hotbar: items and boosters at the bottom, like a block-game inventory bar ---------- */
+:root { --slot1: #2c3746; --slot2: #161e29; --bev-hi: #6b7a90; --bev-lo: #070a0f; }
+:root[data-theme="pink"] { --slot1: #4d1f36; --slot2: #26101c; --bev-hi: #b0688a; --bev-lo: #0f0408; }
+.hotbar { position: fixed; z-index: 8; left: calc((100vw - var(--panel-w) - 28px) / 2); bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; align-items: stretch; gap: 6px; padding: 6px; background: rgba(0, 0, 0, .58); border: 2px solid rgba(255, 255, 255, .16); border-radius: 12px; box-shadow: 0 10px 34px rgba(0, 0, 0, .55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.slot { position: relative; width: 78px; height: 78px; display: grid; justify-items: center; align-content: center; gap: 3px; padding: 0; background: linear-gradient(var(--slot1), var(--slot2)); border: 3px solid; border-color: var(--bev-hi) var(--bev-lo) var(--bev-lo) var(--bev-hi); border-radius: 6px; color: var(--ink); cursor: pointer; transition: transform .12s, filter .12s; }
+.slot .ic { font-size: 2rem; line-height: 1; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .7)); }
+.slot .lb { font: 700 .66rem var(--f-mono); letter-spacing: .06em; text-transform: uppercase; text-shadow: 1px 1px 0 #000; }
+.slot .key { position: absolute; top: 3px; left: 6px; font: 700 .64rem var(--f-mono); color: var(--ink2); }
+.slot .cnt { position: absolute; right: 7px; bottom: 20px; font: 700 1.05rem var(--f-display); color: #fff; text-shadow: 2px 2px 0 #000; }
+.slot:hover { transform: translateY(-3px); filter: brightness(1.15); }
+.slot.on { transform: translateY(-3px); }
+.slot.on::after { content: ""; position: absolute; inset: -8px; border: 3px solid #fff; border-radius: 9px; box-shadow: 0 0 14px color-mix(in srgb, var(--teal) 70%, transparent); pointer-events: none; }
+.slot.boost .lb { color: var(--warn); }
+.slot.boost:not(.empty) { box-shadow: 0 0 16px rgba(239, 192, 78, .45); }
+.slot.empty { filter: grayscale(.85) brightness(.75); }
+.slot.empty .cnt { display: none; }
+.slot.pulse { animation: slotpulse 1s ease-in-out 3; }
+@keyframes slotpulse { 50% { transform: translateY(-6px) scale(1.06); box-shadow: 0 0 22px rgba(239, 192, 78, .8); } }
+.hotbar .sep { width: 2px; margin: 6px 3px; background: rgba(255, 255, 255, .2); border-radius: 2px; }
+.btn.menu { padding: .48em .9em; font-size: .9rem; font-weight: 600; }
+@media (max-width: 820px), (max-aspect-ratio: 1/1) {
+  .hotbar { left: 50%; bottom: max(8px, env(safe-area-inset-bottom)); gap: 4px; padding: 4px; border-radius: 10px; }
+  .slot { width: 60px; height: 60px; gap: 1px; border-width: 2px; }
+  .slot .ic { font-size: 1.5rem; }
+  .slot .lb { font-size: .56rem; letter-spacing: .03em; }
+  .slot .key { display: none; }
+  .slot .cnt { bottom: 15px; right: 5px; font-size: .9rem; }
+  .slot.on::after { inset: -5px; }
+  .panel { bottom: calc(max(8px, env(safe-area-inset-bottom)) + 76px); max-height: 46dvh; }
+  .btn.menu { padding: .4em .65em; font-size: .82rem; }
+}

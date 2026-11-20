@@ -187,7 +187,9 @@ function buildExit(ex) {
   const n = 260, pos = new Float32Array(n * 3), r = rng(3);
   for (let i = 0; i < n; i++) { pos[i * 3] = (r() - .5) * W; pos[i * 3 + 1] = r() * H; pos[i * 3 + 2] = (r() - .5) * (D + 4); }
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  dust = new THREE.Points(geo, new THREE.PointsMaterial({ color: PAL.dust, size: .045, transparent: true, opacity: .55, depthWrite: false }));
+  /* soft round specks: a radial-gradient sprite instead of square points */
+  const speck = canvasTex(64, 64, (g) => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(.35, 'rgba(255,255,255,.5)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); });
+  dust = new THREE.Points(geo, new THREE.PointsMaterial({ color: PAL.dust, size: .06, map: speck, transparent: true, opacity: .6, depthWrite: false, blending: THREE.AdditiveBlending }));
   scene.add(dust);
 })();
 
@@ -203,7 +205,7 @@ function layout() {
   /* keep the doors framed: further back and wider on tall screens, and look low so they sit above the bottom sheet */
   view.fov = portrait ? 74 : 60;
   view.z = portrait ? 7.4 + Math.max(0, .9 - w / h) * 3 : 6.2;
-  view.ty = portrait ? .55 : 1.9;
+  view.ty = portrait ? .2 : 1.9;
   camera.fov = view.fov;
   /* with the side panel, shift the projection so the room centres in the space left of the panel */
   if (panelSide && !$('#panel').hidden) {
@@ -267,8 +269,11 @@ function hud() {
   $('#hearts').innerHTML = H3; $('#hearts').setAttribute('aria-label', G.hearts + ' of 3 hearts');
   $('#shield').hidden = !G.shield; $('#shield span').textContent = G.shield > 1 ? '×' + G.shield : '';
   $$('#streak i').forEach((el, i) => el.classList.toggle('on', i < G.streak % 3));
-  $('#btnImmune').hidden = !G.inv.immune; $('#btnImmune .n').textContent = G.inv.immune;
-  $('#btnHealer').hidden = !G.inv.healer; $('#btnHealer .n').textContent = G.inv.healer;
+  [['#btnImmune', 'immune', 'Immune'], ['#btnHealer', 'healer', 'Healer']].forEach(([id, k, name]) => {
+    const b = $(id), n = G.inv[k];
+    b.classList.toggle('empty', !n); $('.n', b).textContent = n;
+    b.setAttribute('aria-label', name + ' booster: ' + (n ? n + ' ready, tap to use' : 'none yet'));
+  });
   $('#stageName').textContent = G.st.title;
   const j = J[G.node];
   $('#stepName').textContent = j ? ('Junction ' + (G.log.filter(l => l.q === 2).length + 1) + ' · ' + (G.phase === 'q1' ? 'which value?' : 'which corridor?')) : '';
@@ -302,11 +307,11 @@ function offerBoost() { if (!G || G.phase === 'end' || G.phase === 'moving') { i
 $$('.boostbtn').forEach(b => b.addEventListener('click', () => {
   G.inv[b.dataset.b]++; $('#boost').hidden = true; hud();
   const btn = b.dataset.b === 'immune' ? $('#btnImmune') : $('#btnHealer'); btn.classList.remove('pulse'); void btn.offsetWidth; btn.classList.add('pulse');
-  toast(b.dataset.b === 'immune' ? 'Immune saved: tap &#128737;&#65039; in the bar to switch it on' : 'Healer saved: tap it in the bar when you need a heart');
+  toast(b.dataset.b === 'immune' ? 'Immune saved in your hotbar: tap &#128737;&#65039; to switch it on' : 'Healer saved in your hotbar: tap it when you need a heart');
 }));
-$('#btnImmune').addEventListener('click', () => { if (!G || !G.inv.immune) return; G.inv.immune--; G.shield++; Sound.play('shield'); toast('&#128737;&#65039; Immune is on: your next mistake is free'); hud(); });
+$('#btnImmune').addEventListener('click', () => { if (!G) return; if (!G.inv.immune) { toast('No Immune yet: get 3 answers right in a row'); return; } G.inv.immune--; G.shield++; Sound.play('shield'); toast('&#128737;&#65039; Immune is on: your next mistake is free'); hud(); });
 $('#btnHealer').addEventListener('click', () => {
-  if (!G || !G.inv.healer) return;
+  if (!G) return; if (!G.inv.healer) { toast('No Healer yet: get 3 answers right in a row'); return; }
   if (G.hearts >= 3) { toast('Hearts are already full: keep it for later'); return; }
   G.inv.healer--; G.hearts++; Sound.play('heal'); toast('&#10084;&#65039; +1 heart'); hud();
 });
@@ -454,12 +459,12 @@ function openItem(kind, tab) {
   if (!G) return;
   ovKind = kind; ovTab = tab || 0;
   $('#overlay').hidden = false;
-  $$('.item').forEach(b => b.classList.remove('on'));
+  $$('.slot').forEach(b => b.classList.remove('on'));
   ({ case: $('#btnCase'), map: $('#btnMap'), ref: $('#btnRef') })[kind].classList.add('on');
   drawItem();
   $('#ovClose').focus({ preventScroll: true });
 }
-function closeItem() { $('#overlay').hidden = true; ovKind = null; $$('.item').forEach(b => b.classList.remove('on')); }
+function closeItem() { $('#overlay').hidden = true; ovKind = null; $$('.slot').forEach(b => b.classList.remove('on')); }
 function tabs(names) {
   $('#ovTabs').innerHTML = names.map((n, i) => `<button type="button" class="tab${i === ovTab ? ' on' : ''}" data-t="${i}">${n}</button>`).join('');
   $$('#ovTabs .tab').forEach(b => b.addEventListener('click', () => { ovTab = +b.dataset.t; drawItem(); }));
@@ -530,12 +535,12 @@ $('#ovClose').addEventListener('click', closeItem);
 $('#overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeItem(); });
 
 /* ---------- screens ---------- */
-function showScreen(id) { $$('.screen').forEach(s => { s.hidden = s.id !== id; }); }
+function showScreen(id) { $$('.screen').forEach(s => { s.hidden = s.id !== id; }); $('#hotbar').hidden = true; }
 function hideScreens() { $$('.screen').forEach(s => { s.hidden = true; }); }
 function showPanel() { panel.hidden = false; layout(); }
 function hidePanel() { panel.hidden = true; layout(); }
 function openStages() {
-  G = null; idle = true; hidePanel(); $('#hud').hidden = true; closeItem();
+  G = null; idle = true; hidePanel(); $('#hud').hidden = true; $('#hotbar').hidden = true; closeItem();
   buildRoom({ doors: ['< 75%', '≥ 75%'], holo: 'FEV₁/FVC' });
   camBase.x = 0; camBase.z = 8; look.x = 0;
   $('#stageGrid').innerHTML = STAGES.map((s, i) => {
@@ -550,7 +555,7 @@ function openStages() {
 async function startStage(i) {
   Sound.init(); if (!Sound.isMuted()) Sound.startMusic();
   G = fresh(i); idle = false; hideScreens(); closeItem(); $('#boost').hidden = true;
-  $('#hud').hidden = false;
+  $('#hud').hidden = false; $('#hotbar').hidden = false;
   await fade(true);
   enterJunction('ratio');
   camBase.x = 0; look.x = 0; camBase.z = 9.5; layout();
