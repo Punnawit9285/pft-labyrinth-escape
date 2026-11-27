@@ -5,8 +5,8 @@ A 3D maze for learning to read spirometry with the class flowchart. Every juncti
 1. **Which value do we look at here?** (for example FEV₁/FVC)
 2. **Which corridor?** Pick the door whose rule fits the patient, for example `< 75%` or `≥ 75%`.
 
-- **Play:** https://punnawit9285.github.io/pft-labyrinth-escape/
-- Made for the RS I Case 1 presentation (idiopathic pulmonary fibrosis): https://punnawit9285.github.io/idiopathic-pulmonary-fibrosis/
+- **Play:** https://kaopunnawit.github.io/pft-labyrinth-escape/
+- Made for the RS I Case 1 presentation (idiopathic pulmonary fibrosis): https://kaopunnawit.github.io/idiopathic-pulmonary-fibrosis/
 
 ## Rules
 

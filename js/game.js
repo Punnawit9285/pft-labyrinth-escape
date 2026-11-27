@@ -445,7 +445,7 @@ function showEnd(end) {
   $('#endCard').innerHTML = `<div class="endtop"><div class="kick">Escaped &#183; ${st.tag} &#183; ${st.title}</div><div class="ex">${st.final}</div><div class="stars" aria-label="${G.hearts} hearts left">${stars}</div></div>` +
     `<ol class="trail">${steps}</ol><ul class="whylist">${st.why.map(w => `<li>${w}</li>`).join('')}</ul>` +
     `<div class="dx">Case diagnosis: <b>${st.dx}</b></div>` +
-    (st.id === 'sgd1' ? `<p class="fine">Full Case 1 presentation: <a href="https://punnawit9285.github.io/idiopathic-pulmonary-fibrosis/" style="color:var(--teal)">punnawit9285.github.io/idiopathic-pulmonary-fibrosis</a></p>` : '') +
+    (st.id === 'sgd1' ? `<p class="fine">Full Case 1 presentation: <a href="https://kaopunnawit.github.io/idiopathic-pulmonary-fibrosis/" style="color:var(--teal)">kaopunnawit.github.io/idiopathic-pulmonary-fibrosis</a></p>` : '') +
     `<p class="fine">Source: ${st.source}</p>` +
     `<div class="row">${next ? '<button type="button" class="btn primary" id="endNext">Next: ' + next.title + ' →</button>' : ''}<button type="button" class="btn" id="endRetry">Play again</button><button type="button" class="btn" id="endAll">All stages</button></div>`;
   showScreen('scrEnd');
